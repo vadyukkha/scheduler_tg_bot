@@ -21,6 +21,12 @@ async def add(message: types.Message):
         await message.answer("Используйте: /add text YYYY-MM-DD HH:MM")
         return
 
+    try:
+        datetime.strptime(args[2], "%Y-%m-%d %H:%M")
+    except ValueError:
+        await message.answer("Неверный формат даты. Используйте: YYYY-MM-DD HH:MM")
+        return
+
     text, deadline = args[1], args[2]
     task_id = add_task(str(message.from_user.id), text, deadline)
     await message.answer(f"Задача добавлена! ID: {task_id}")
@@ -65,5 +71,11 @@ async def delete(message: types.Message):
         await message.answer("Используйте: /delete YYYY-MM-DD")
         return
 
-    delete_tasks(str(message.from_user.id), args[1])
-    await message.answer(f"Удалены задачи на {args[1]}")
+    try:
+        datetime.strptime(args[1], "%Y-%m-%d %H:%M")
+        delete_tasks(str(message.from_user.id), args[1])
+        await message.answer(f"Удалены задачи на {args[1]}")
+    except ValueError:
+        await message.answer(
+            f"Ошибка удаления задач на {args[1]}. Проверьте формат даты."
+        )

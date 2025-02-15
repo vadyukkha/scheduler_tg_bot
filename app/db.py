@@ -1,10 +1,11 @@
-from pymongo import MongoClient
 from bson.objectid import ObjectId
-from config import URI, NAME_OF_COLLECTION, NAME_OF_DATABASE
+from config import NAME_OF_COLLECTION, NAME_OF_DATABASE, URI
+from pymongo import MongoClient
 
 client = MongoClient(URI)
 db = client[NAME_OF_DATABASE]
 collection = db[NAME_OF_COLLECTION]
+
 
 def add_task(user_id, text, deadline):
     task = {
@@ -16,19 +17,19 @@ def add_task(user_id, text, deadline):
     result = collection.insert_one(task)
     return str(result.inserted_id)
 
+
 def get_tasks(user_id):
     tasks = list(collection.find({"user_id": user_id}))
     for task in tasks:
         task["_id"] = str(task["_id"])
     return tasks
 
+
 def update_task(user_id, task_id, new_text):
     collection.update_one(
-        {"user_id": user_id, "_id": ObjectId(task_id)},
-        {"$set": {"text": new_text}}
+        {"user_id": user_id, "_id": ObjectId(task_id)}, {"$set": {"text": new_text}}
     )
 
+
 def delete_tasks(user_id, date):
-    collection.delete_many(
-        {"user_id": user_id, "deadline": {"$regex": f"^{date}"}}
-    )
+    collection.delete_many({"user_id": user_id, "deadline": {"$regex": f"^{date}"}})
