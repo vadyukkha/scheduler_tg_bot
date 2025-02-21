@@ -26,9 +26,10 @@ def get_tasks(user_id):
 
 
 def update_task(user_id, task_id, new_text):
-    collection.update_one(
+    res = collection.update_one(
         {"user_id": user_id, "_id": ObjectId(task_id)}, {"$set": {"text": new_text}}
     )
+    return res.modified_count != 0
 
 
 def delete_tasks(user_id, date):

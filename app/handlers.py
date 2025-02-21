@@ -37,6 +37,12 @@ async def add(message: types.Message):
 
     text, deadline = parts[0], parts[1] + " " + parts[2]
 
+    try:
+        datetime.strptime(deadline, "%Y-%m-%d %H:%M")
+    except ValueError:
+        await message.answer("Неверный формат даты. Используйте: YYYY-MM-DD HH:MM")
+        return
+
     task_id = add_task(str(message.from_user.id), text, deadline)
     await message.answer(f"Задача добавлена! ID: {task_id}")
 
@@ -55,23 +61,24 @@ async def tasks(message: types.Message):
     now_msk = now_utc.replace(tzinfo=pytz.utc).astimezone(msk_timezone)
 
     for task in user_tasks:
-        try:
-            deadline_str = task["deadline"]
-            deadline = datetime.strptime(deadline_str, "%Y-%m-%d %H:%M")
+        deadline_str = task["deadline"]
+        deadline = datetime.strptime(deadline_str, "%Y-%m-%d %H:%M")
 
-            deadline_msk = msk_timezone.localize(deadline)
-            remaining_seconds = (deadline_msk - now_msk).total_seconds()
-            remaining_hours = remaining_seconds // 3600
+        deadline_msk = msk_timezone.localize(deadline)
+        remaining = (deadline_msk - now_msk).total_seconds()
 
-            status = (
-                "Завершено"
-                if task.get("status") == "done"
-                else f"Осталось {remaining_hours: .0f} ч."
-            )
-            msg += f"{task['_id']}: {task['text']} ({status})\n"
-        except ValueError as e:
-            print(f"Ошибка при обработке даты задачи {task['_id']}: {e}")
-            msg += f"Ошибка: Неверный формат даты для задачи {task['_id']}\n"
+        hours = int(abs(remaining) // 3600)
+        minutes = int(abs(remaining) // 60 % 60)
+        seconds = int(abs(remaining) % 60)
+
+        status = ""
+        if task["status"] == "done":
+            status = "Выполнено"
+        elif remaining > 0:
+            status = f"Осталось {hours} часов {minutes} минут {seconds} секунд"
+        else:
+            status = f"Просрочено на {hours} часов {minutes} минут {seconds} секунд"
+        msg += f"{task['_id']}: {task['text']} ({status})\n"
 
     await message.answer(msg)
 
@@ -84,8 +91,10 @@ async def edit(message: types.Message):
         return
 
     task_id, new_text = args[1], args[2]
-    update_task(str(message.from_user.id), task_id, new_text)
-    await message.answer("Задача обновлена!")
+    if update_task(str(message.from_user.id), task_id, new_text):
+        await message.answer("Задача обновлена!")
+    else:
+        await message.answer("Указанный task_id не существует!")
 
 
 @router.message(Command("delete"))
@@ -95,8 +104,14 @@ async def delete(message: types.Message):
         await message.answer("Используйте: /delete YYYY-MM-DD")
         return
 
-    delete_tasks(str(message.from_user.id), args[1])
-    await message.answer(f"Удалены задачи на {args[1]}")
+    try:
+        datetime.strptime(args[1], "%Y-%m-%d %H:%M")
+        delete_tasks(str(message.from_user.id), args[1])
+        await message.answer(f"Удалены задачи на {args[1]}")
+    except ValueError:
+        await message.answer(
+            f"Ошибка удаления задач на {args[1]}. Проверьте формат даты."
+        )
 
 
 @router.message(Command("done"))
