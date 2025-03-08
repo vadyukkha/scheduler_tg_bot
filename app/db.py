@@ -1,6 +1,7 @@
 from bson.objectid import ObjectId
-from config import NAME_OF_COLLECTION, NAME_OF_DATABASE, URI
 from pymongo import MongoClient
+
+from app.config import NAME_OF_COLLECTION, NAME_OF_DATABASE, URI
 
 client = MongoClient(URI)
 db = client[NAME_OF_DATABASE]
